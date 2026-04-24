@@ -1,0 +1,4 @@
+# file: D:\Coding\Assignments\KaalaGhoda\Assignment_Sourav\app\config.py
+# hypothesis_version: 6.151.9
+
+['0.0.0.0', '1', '4', '8000', 'EXECUTOR_THREADS', 'HOST', 'INFO', 'LOG_LEVEL', 'PORT', 'WORKERS']

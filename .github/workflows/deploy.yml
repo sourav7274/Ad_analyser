@@ -1,0 +1,61 @@
+name: Test, Build, and Push to ECR
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test-build-push:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout code
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Set up Python 3.11 and install dependencies
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # Step 3: Run tests — build does NOT proceed if this step fails
+      - name: Run tests
+        run: pytest tests/
+
+      # Step 4: Configure AWS credentials
+      # TODO: Ensure the following secrets are set in your GitHub repository settings:
+      #   AWS_ACCESS_KEY_ID     — your AWS access key ID
+      #   AWS_SECRET_ACCESS_KEY — your AWS secret access key
+      #   AWS_REGION            — the AWS region where your ECR registry lives (e.g. us-east-1)
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      # Step 5: Login to Amazon ECR
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # Step 6: Build Docker image and tag with the commit SHA
+      - name: Build Docker image
+        env:
+          # TODO: Replace with your ECR repository URI, e.g. 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-repo
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+        run: |
+          docker build -t $ECR_REPOSITORY:${{ github.sha }} .
+
+      # Step 7: Push the tagged image to ECR
+      - name: Push Docker image to ECR
+        env:
+          # TODO: Replace with your ECR repository URI, e.g. 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-repo
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+        run: |
+          docker push $ECR_REPOSITORY:${{ github.sha }}

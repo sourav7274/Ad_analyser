@@ -1,0 +1,4 @@
+# file: D:\Coding\Assignments\KaalaGhoda\Assignment_Sourav\mock_model.py
+# hypothesis_version: 6.151.9
+
+[0.1, 0.3, 0.5, 0.8, 0.85, 0.99, 2.0, 4.0, 'force_runtime_error', 'impulse_score', 'model_version', 'trust_score', 'v1.0-mock']
