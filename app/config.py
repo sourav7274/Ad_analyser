@@ -1,5 +1,9 @@
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv()  # loads .env file if present, no-op if missing
+
 
 class Settings:
     """Application settings loaded from environment variables with documented defaults."""
