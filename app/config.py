@@ -16,6 +16,8 @@ class Settings:
         self.executor_threads: int = int(os.getenv("EXECUTOR_THREADS", "4"))
         # 0 means no timeout
         self.model_timeout: int = int(os.getenv("MODEL_TIMEOUT", "30"))
+        # Rate limit for the analyse endpoint, e.g. "10/minute"
+        self.rate_limit: str = os.getenv("RATE_LIMIT", "10/minute")
 
 
 # Module-level singleton — all other modules import this

@@ -1,11 +1,16 @@
 """Shared pytest fixtures for the FastAPI Ad Analyser test suite."""
 
+import os
 from unittest.mock import patch
 
 import pytest
 from starlette.testclient import TestClient
 
-from app.main import app
+# Must be set before app modules are imported so the Settings singleton
+# and the rate limiter both pick up the test value.
+os.environ["RATE_LIMIT"] = "10000/minute"
+
+from app.main import app  # noqa: E402
 
 MOCK_RESULT = {
     "impulse_score": 0.75,

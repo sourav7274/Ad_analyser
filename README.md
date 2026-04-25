@@ -59,6 +59,7 @@ docker run -p 8000:8000 ad-analyser
 | Method | Path | Description |
 |--------|------|-------------|
 | `GET` | `/health` | Liveness check — returns `{"status": "ok"}` |
+| `GET` | `/metrics` | In-memory request counters since last restart |
 | `POST` | `/api/v1/analyse-ad` | Analyse ad copy and return conversion scores |
 
 ### POST /api/v1/analyse-ad
@@ -129,6 +130,7 @@ The `ThreadPoolExecutor` is created once at application startup (via FastAPI's l
 | `WORKERS` | `1` | Number of Uvicorn worker processes |
 | `EXECUTOR_THREADS` | `4` | `ThreadPoolExecutor` pool size for model inference |
 | `MODEL_TIMEOUT` | `30` | Seconds before a model call times out (0 = no timeout) |
+| `RATE_LIMIT` | `10/minute` | Max requests per IP per window on the analyse endpoint |
 
 Copy `.env.example` to `.env` and adjust values as needed.
 
@@ -147,6 +149,28 @@ Defined in `.github/workflows/deploy.yml`. Triggers on every push to `main`:
 7. Push both tags to ECR
 
 Required GitHub Actions secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_REGION`, `ECR_REPOSITORY`.
+
+---
+
+## API in Action
+
+### Health check — GET /health
+![Health check](screenshots/health.png)
+
+### Successful prediction — POST /api/v1/analyse-ad
+![Successful prediction](screenshots/mock_success.png)
+
+### Short ad copy (< 10 chars) — HTTP 400
+![Short input error](screenshots/mock_short_error.png)
+
+### Empty request body — HTTP 422
+![Empty body validation error](screenshots/mock_empty_body.png)
+
+### Runtime error trigger — HTTP 500
+![Runtime error](screenshots/mock_model_null.png)
+
+### Rate limiting — HTTP 429
+![Rate limit exceeded](screenshots/rate_limiting.png)
 
 ---
 
