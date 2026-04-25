@@ -1,0 +1,48 @@
+# Version control
+.git
+.gitignore
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# Test artifacts
+.pytest_cache/
+.hypothesis/
+htmlcov/
+.coverage
+coverage.xml
+
+# Environment files — never bake secrets into the image
+.env
+.env.*
+!.env.example
+
+# Dev tooling
+.kiro/
+.vscode/
+.idea/
+
+# Docs and screenshots — not needed at runtime
+README.md
+screenshots/
+docs/
+
+# CI/CD config — not needed at runtime
+.github/
+
+# Temp files
+.kiro_tmp/
+*.log

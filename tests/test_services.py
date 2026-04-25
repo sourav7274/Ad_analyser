@@ -120,3 +120,54 @@ def test_analyse_ad_timeout_raises_http_504():
         assert "timed out" in exc_info.value.detail
     finally:
         config_module.settings.model_timeout = original_timeout
+
+
+def test_analyse_ad_retries_on_runtime_error_then_succeeds():
+    """RuntimeError on first call, success on second → service returns PredictionData."""
+    from app import config as config_module
+
+    service = _make_service()
+    original_retries = config_module.settings.model_retries
+    config_module.settings.model_retries = 2
+
+    call_count = 0
+
+    def flaky_predict(ad_text):
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise RuntimeError("transient failure")
+        return MOCK_RESULT
+
+    try:
+        with patch("app.services.predict_conversion", side_effect=flaky_predict):
+            result = asyncio.run(service.analyse_ad("some valid ad copy", "req-006"))
+        assert isinstance(result, PredictionData)
+        assert call_count == 2  # failed once, succeeded on retry
+    finally:
+        config_module.settings.model_retries = original_retries
+
+
+def test_analyse_ad_exhausts_retries_raises_http_500():
+    """RuntimeError on every attempt → HTTPException 500 after all retries exhausted."""
+    from app import config as config_module
+
+    service = _make_service()
+    original_retries = config_module.settings.model_retries
+    config_module.settings.model_retries = 2  # 1 initial + 2 retries = 3 total calls
+
+    call_count = 0
+
+    def always_fails(ad_text):
+        nonlocal call_count
+        call_count += 1
+        raise RuntimeError("persistent failure")
+
+    try:
+        with patch("app.services.predict_conversion", side_effect=always_fails):
+            with pytest.raises(HTTPException) as exc_info:
+                asyncio.run(service.analyse_ad("force_runtime_error trigger", "req-007"))
+        assert exc_info.value.status_code == 500
+        assert call_count == 3  # 1 initial + 2 retries
+    finally:
+        config_module.settings.model_retries = original_retries

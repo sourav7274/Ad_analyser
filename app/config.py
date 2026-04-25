@@ -18,6 +18,8 @@ class Settings:
         self.model_timeout: int = int(os.getenv("MODEL_TIMEOUT", "30"))
         # Rate limit for the analyse endpoint, e.g. "10/minute"
         self.rate_limit: str = os.getenv("RATE_LIMIT", "10/minute")
+        # Number of retry attempts on transient RuntimeError (0 = no retries)
+        self.model_retries: int = int(os.getenv("MODEL_RETRIES", "2"))
 
 
 # Module-level singleton — all other modules import this

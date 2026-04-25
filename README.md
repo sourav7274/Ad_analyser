@@ -118,6 +118,10 @@ The `ThreadPoolExecutor` is created once at application startup (via FastAPI's l
 
 `asyncio.wait_for` wraps the executor future with a configurable timeout (default 30s, controlled by `MODEL_TIMEOUT`). If the model call exceeds the timeout, the service raises HTTP 504 rather than hanging indefinitely.
 
+### Retry logic
+
+On `RuntimeError` (transient model failures), the service retries the call up to `MODEL_RETRIES` times (default 2) with exponential backoff (0.5s, 1.0s, ...). If all attempts fail, HTTP 500 is returned. `ValueError` (bad input) and timeouts are never retried — they are deterministic failures.
+
 ---
 
 ## Environment Variables
@@ -131,6 +135,7 @@ The `ThreadPoolExecutor` is created once at application startup (via FastAPI's l
 | `EXECUTOR_THREADS` | `4` | `ThreadPoolExecutor` pool size for model inference |
 | `MODEL_TIMEOUT` | `30` | Seconds before a model call times out (0 = no timeout) |
 | `RATE_LIMIT` | `10/minute` | Max requests per IP per window on the analyse endpoint |
+| `MODEL_RETRIES` | `2` | Retry attempts on transient `RuntimeError` from the model (0 = no retries) |
 
 Copy `.env.example` to `.env` and adjust values as needed.
 
@@ -172,6 +177,15 @@ Required GitHub Actions secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `
 ### Rate limiting — HTTP 429
 ![Rate limit exceeded](screenshots/rate_limiting.png)
 
+### Retry logic — WARNING logs on transient RuntimeError
+![Retry attempts in server logs](screenshots/retry_attempt.png)
+
+### GitHub Actions pipeline — tests, build, push
+![GitHub Actions pipeline](screenshots/github_action_push.png)
+
+### Docker image pushed to AWS ECR
+![AWS ECR image](screenshots/aws_ecr_image.png)
+
 ---
 
 ## Tradeoffs & Assumptions
@@ -180,3 +194,4 @@ Required GitHub Actions secrets: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `
 - **ThreadPoolExecutor vs ProcessPoolExecutor**: A thread pool is used because `predict_conversion` is I/O-bound (sleep). A CPU-bound model would warrant a `ProcessPoolExecutor` or a separate worker process.
 - **Workers=1 in Docker CMD**: Kept at 1 for simplicity. For production scale-out, swap to `gunicorn -k uvicorn.workers.UvicornWorker` with multiple workers, or run multiple container replicas behind a load balancer.
 - **No persistent storage**: The service is stateless — no database or cache. Each request is independent.
+- **Retry on RuntimeError only**: Retries are applied only to `RuntimeError` (transient model failures). `ValueError` (bad input) and timeouts are not retried since they are deterministic failures.
