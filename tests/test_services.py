@@ -95,3 +95,28 @@ def test_analyse_ad_unexpected_exception_raises_http_500_generic():
 
     assert exc_info.value.status_code == 500
     assert exc_info.value.detail == "An unexpected error occurred."
+
+
+def test_analyse_ad_timeout_raises_http_504():
+    """Model call exceeding MODEL_TIMEOUT → HTTPException with status 504."""
+    import time
+    from app import config as config_module
+
+    service = _make_service()
+
+    # Patch timeout to 0.1s and make predict_conversion sleep longer
+    original_timeout = config_module.settings.model_timeout
+    config_module.settings.model_timeout = 1  # 1 second timeout
+
+    def slow_predict(ad_text):
+        time.sleep(5)  # longer than timeout
+        return {}
+
+    try:
+        with patch("app.services.predict_conversion", side_effect=slow_predict):
+            with pytest.raises(HTTPException) as exc_info:
+                asyncio.run(service.analyse_ad("some long ad copy here", "req-005"))
+        assert exc_info.value.status_code == 504
+        assert "timed out" in exc_info.value.detail
+    finally:
+        config_module.settings.model_timeout = original_timeout

@@ -44,18 +44,22 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      # Step 6: Build Docker image and tag with the commit SHA
+      # Step 6: Build Docker image — tagged with both commit SHA (immutable) and latest
       - name: Build Docker image
         env:
           # TODO: Replace with your ECR repository URI, e.g. 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-repo
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
-          docker build -t $ECR_REPOSITORY:${{ github.sha }} .
+          docker build \
+            -t $ECR_REPOSITORY:${{ github.sha }} \
+            -t $ECR_REPOSITORY:latest \
+            .
 
-      # Step 7: Push the tagged image to ECR
+      # Step 7: Push both tags to ECR
       - name: Push Docker image to ECR
         env:
           # TODO: Replace with your ECR repository URI, e.g. 123456789012.dkr.ecr.us-east-1.amazonaws.com/my-repo
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
           docker push $ECR_REPOSITORY:${{ github.sha }}
+          docker push $ECR_REPOSITORY:latest
